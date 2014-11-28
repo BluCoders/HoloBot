@@ -1,6 +1,6 @@
 HoloBot
 =======
-[SpyTec](https://github.com/SpyTec)
+by [SpyTec](https://github.com/SpyTec)
 
 Wiki and remind IRC Bot made in C# .NET 4.5
 
