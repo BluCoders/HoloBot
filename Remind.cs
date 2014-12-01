@@ -8,17 +8,31 @@ using System.Threading;
 
 namespace HoloBot
 {
+    /// <summary>
+    /// To set a reminder for a user and remind at a specific time.
+    /// </summary>
     class Remind
     {
         public static string sqlite_db = Program.nick;
         public static string sqlite_table = "remind";
         public static int sqlite_version = 3;
         private static bool warmed_up = false;
+
+        /// <summary>
+        /// Set a reminder for a user
+        /// </summary>
+        /// <param name="toUser">User whom the reminder is set to</param>
+        /// <param name="fromUser">User behind setting the reminder</param>
+        /// <param name="time">Which time to remind user</param>
+        /// <param name="reminder">What the reminder is. Can be empty</param>
+        /// <returns></returns>
         public static bool SetReminder(string toUser, string fromUser, string time, string reminder = null)
         {
             using (SQLiteConnection con = new SQLiteConnection(String.Format("Data Source={0}.sqlite;Version={1};", sqlite_db, sqlite_version)))
             using (SQLiteCommand command = con.CreateCommand())
             {
+                DateTime remindTime;
+
                 con.Open();
 
                 // Check if application has warmed up. I.e. being the first time going through application command. If true it skips doing query.
@@ -28,9 +42,10 @@ namespace HoloBot
                     warmed_up = true;
                 }
 
+                // Try to format time
                 try
                 {
-                    FormatTime(time);
+                    remindTime = FormatTime(time);
                 }
                 catch(ArgumentNullException)
                 {
@@ -43,107 +58,168 @@ namespace HoloBot
                     return false;
                 }
 
-                if(toUser == fromUser)
+                try
                 {
-                    if (reminder != null)
+                    // If reminding yourself
+                    if(toUser == fromUser)
                     {
-                        command.CommandText = "INSERT INTO @remind_table (toUser, time, remindText) VALUES (@toUser, @time, 'You asked me to remind you')";
-                        command.Parameters.AddWithValue("@remind_table", sqlite_table);
-                        command.Parameters.AddWithValue("@toUser", toUser);
-                        command.Parameters.AddWithValue("@time", time);
+                        // If what to remind isn't null
+                        if (reminder != null)
+                        {
+                            command.CommandText = "INSERT INTO @remind_table (toUser, time, remindText) VALUES (@toUser, @time, 'You asked me to remind you')";
+                            command.Parameters.AddWithValue("@remind_table", sqlite_table);
+                            command.Parameters.AddWithValue("@toUser", toUser);
+                            command.Parameters.AddWithValue("@time", remindTime);
+                        }
+                        else
+                        {
+                            command.CommandText = "INSERT INTO @remind_table (toUser, time, remindText) VALUES (@toUser, @time, @reminder)";
+                            command.Parameters.AddWithValue("@remind_table", sqlite_table);
+                            command.Parameters.AddWithValue("@toUser", toUser);
+                            command.Parameters.AddWithValue("@time", remindTime);
+                            command.Parameters.AddWithValue("@reminder", reminder);
+                        }
                     }
+                    // If someone else remind you
                     else
                     {
-                        command.CommandText = "INSERT INTO @remind_table (toUser, time, remindText) VALUES (@toUser, @time, @reminder)";
-                        command.Parameters.AddWithValue("@remind_table", sqlite_table);
-                        command.Parameters.AddWithValue("@toUser", toUser);
-                        command.Parameters.AddWithValue("@time", time);
-                        command.Parameters.AddWithValue("@reminder", reminder);
+                        if (reminder != null)
+                        {
+                            command.CommandText = "INSERT INTO @remind_table (toUser, time, remindText) VALUES (@toUser, @time, @reminder)";
+                            command.Parameters.AddWithValue("@remind_table", sqlite_table);
+                            command.Parameters.AddWithValue("@toUser", toUser);
+                            command.Parameters.AddWithValue("@time", remindTime);
+                            command.Parameters.AddWithValue("@reminder", fromUser + " asked me to remind you");
+                        }
+                        else
+                        {
+                            command.CommandText = "INSERT INTO @remind_table (toUser, time, remindText) VALUES (@toUser, @time, @reminder)";
+                            command.Parameters.AddWithValue("@remind_table", sqlite_table);
+                            command.Parameters.AddWithValue("@toUser", toUser);
+                            command.Parameters.AddWithValue("@time", remindTime);
+                            command.Parameters.AddWithValue("@reminder", fromUser + " reminded you: " + reminder);
+                        }
                     }
+                    // Execute command
+                    command.ExecuteScalar();
                 }
-                else
+                finally
                 {
-                    if (reminder != null)
-                    {
-                        command.CommandText = "INSERT INTO @remind_table (toUser, time, remindText) VALUES (@toUser, @time, @reminder)";
-                        command.Parameters.AddWithValue("@remind_table", sqlite_table);
-                        command.Parameters.AddWithValue("@toUser", toUser);
-                        command.Parameters.AddWithValue("@time", time);
-                        command.Parameters.AddWithValue("@reminder", fromUser + " asked me to remind you");
-                    }
-                    else
-                    {
-                        command.CommandText = "INSERT INTO @remind_table (toUser, time, remindText) VALUES (@toUser, @time, @reminder)";
-                        command.Parameters.AddWithValue("@remind_table", sqlite_table);
-                        command.Parameters.AddWithValue("@toUser", toUser);
-                        command.Parameters.AddWithValue("@time", time);
-                        command.Parameters.AddWithValue("@reminder", fromUser + " reminded you: " + reminder);
-                    }
+                    // Close connection
+                    con.Close();
                 }
-                command.ExecuteScalar();
-                con.Close();
             }
             return true;
         }
-        public static void CheckTable(SQLiteCommand command)
+        /// <summary>
+        /// Check if table exists. If not, create it
+        /// </summary>
+        /// <param name="command">The SQLiteCommand in which method is located in</param>
+        private static void CheckTable(SQLiteCommand command)
         {
             command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='@remind_table'";
             command.Parameters.AddWithValue("@remind_table", sqlite_table);
             var name = command.ExecuteScalar();
+
+            // If name isn't null and it equals tablename
             if (name != null && name.ToString() == sqlite_table)
             {
-                // Table exists: Return function
+                // Table exists: Return method
                 return;
             }
+            // Otherwise create table
             command.CommandText = "CREATE TABLE @remind_table (id INT, toUser VARCHAR(42), time DateTime, reminder VARCHAR(255))";
             command.Parameters.AddWithValue("@remind_table", sqlite_table);
             command.ExecuteNonQuery();
         }
-        public static void FormatTime(string timeToParse)
+        /// <summary>
+        /// Format time to yyyy-MM-dd HH:mm:ss
+        /// </summary>
+        /// <param name="timeToParse">The string of time</param>
+        private static DateTime FormatTime(string timeToParse)
         {
             string format = "yyyy-MM-dd HH:mm:ss";
-            DateTime FormattedTime = DateTime.ParseExact(timeToParse, format, CultureInfo.InvariantCulture);
-            Console.WriteLine(FormattedTime);
+            return DateTime.ParseExact(timeToParse, format, CultureInfo.InvariantCulture);
         }
-        public static object GetReminder(SQLiteCommand command, int remindId)
+        /// <summary>
+        /// Get full reminder
+        /// </summary>
+        /// <param name="command">The SQLiteCommand in which method is located in</param>
+        /// <param name="remindId">The row ID get from</param>
+        /// <returns>SQLiteDataReader as ExecuteReader()</returns>
+        private static SQLiteDataReader GetReminder(SQLiteCommand command, int remindId)
         {
             command.CommandText = "SELECT * FROM @table WHERE id='@id'";
             command.Parameters.AddWithValue("@table", sqlite_table);
             command.Parameters.AddWithValue("@id", remindId);
-            return command.ExecuteScalar();
+            return command.ExecuteReader();
         }
-        public static object ListReminders(SQLiteCommand command)
+        /// <summary>
+        /// Get a query of reminders
+        /// </summary>
+        /// <param name="command">The SQLiteCommand in which method is located in</param>
+        /// <param name="minutes">Timespan to check for. In minutes</param>
+        /// <returns>SQLiteDataReader as ExecuteReader()</returns>
+        private static SQLiteDataReader ListReminders(SQLiteCommand command, int minutes)
         {
-            command.CommandText = "SELECT id, time FROM @table WHERE time > date(now - 10min)";
+            DateTime time = DateTime.Now.Subtract(TimeSpan.FromMinutes(minutes));
+            command.CommandText = "SELECT id, time FROM @table WHERE time > date(@time)";
             command.Parameters.AddWithValue("@table", sqlite_table);
-            return command.ExecuteScalar();
+            command.Parameters.AddWithValue("@time", time);
+            return command.ExecuteReader();
         }
-        public static bool RemoveReminder(SQLiteCommand command, int remindId)
+        /// <summary>
+        /// Remove a set reminder (recommended after reminding the person)
+        /// </summary>
+        /// <param name="command">The SQLiteCommand in which method is located in</param>
+        /// <param name="remindId">The row ID to be deleted</param>
+        /// <returns>Bool: If it has been removed or not</returns>
+        private static bool RemoveReminder(SQLiteCommand command, int remindId)
         {
             command.CommandText = "DELETE FROM @table WHERE id=@id";
             command.Parameters.AddWithValue("@table", sqlite_table);
             command.Parameters.AddWithValue("@id", remindId);
             var results = command.ExecuteScalar();
+            // If succeeded to delete
             if (results != null)
             {
                 return true;
             }
             return false;
         }
-        public static void remindChecker()
+        /// <summary>
+        /// Check for reminders ready to be set into countdown
+        /// </summary>
+        /// <param name="minutes">The window to check for due reminders. Recommended 10min</param>
+        public static void remindChecker(int minutes = Program.remindTimer)
         {
+            // Start a connection
             using (SQLiteConnection con = new SQLiteConnection(String.Format("Data Source={0}.sqlite;Version={1};", sqlite_db, sqlite_version)))
+            // Loop to check for due reminders 
             while(true)
             {
-                using (SQLiteCommand command = con.CreateCommand())
+                try
                 {
-                    Thread.Sleep(Program.remindTimer * 60 * 60);
-                    con.Open();
-                    var list = ListReminders(command);
-                    //foreach(var row in list)
-                    //{
-
-                    //}
+                    // Issue new command
+                    using (SQLiteCommand command = con.CreateCommand())
+                    {
+                        // Open connection and get list of reminders as `SQLiteDataReader` type
+                        con.Open();
+                        var list = ListReminders(command, minutes);
+                        using (list)
+                        {
+                            while(list.Read())
+                            {
+                                // Thread to remind each row
+                            }
+                        }
+                    }
+                }
+                finally
+                {
+                    con.Close();
+                    //Sleep for the set amount of minutes to be able to check every set minutes for new due reminders. (do it last to check when bot first starts up)
+                    Thread.Sleep(minutes * 60 * 60);
                 }
             }
         }

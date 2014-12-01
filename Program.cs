@@ -52,7 +52,8 @@ namespace HoloBot
                 }
                 writer.WriteLine("JOIN " + channel);
                 writer.Flush();
-                Thread remindersCheck = new Thread(Remind.remindChecker);
+                // Specify zero input parameters with empty parentheses. To explain see: http://msdn.microsoft.com/en-us/library/bb397687.aspx
+                Thread remindersCheck = new Thread( () => Remind.remindChecker(remindTimer));
                 while (true)
                 {
                     while ((inputLine = reader.ReadLine()) != null)
