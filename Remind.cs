@@ -20,6 +20,7 @@ namespace HoloBot
 		public	static	int	sqlite_version	= 3;
 		private	static	bool	warmed_up	= false;
 
+
 		/// <summary>
 		/// Set a reminder for a user
 		/// </summary>
@@ -197,13 +198,13 @@ namespace HoloBot
 		{
 			// Start a connection
 			using (SQLiteConnection con = new SQLiteConnection(String.Format("Data Source={0}.sqlite;Version={1};", sqlite_db, sqlite_version)))
-			// Loop to check for due reminders 
+			// Loop to check for due reminders
 			while(true)
 			{
 				try
 				{
 					// Issue new command
-				  using (SQLiteCommand command = con.CreateCommand())
+					using (SQLiteCommand command = con.CreateCommand())
 					{
 						// Open connection and get list of reminders as `SQLiteDataReader` type
 						con.Open();
@@ -212,17 +213,18 @@ namespace HoloBot
 						{
 							while(list.Read())
 							{
-							DateTime rowTime = list.GetDateTime(2);
-							while (true)
-							{
-								if (rowTime > DateTime.Now)
+								DateTime rowTime = list.GetDateTime(2);
+								while (true)
 								{
-									
+									if (rowTime > DateTime.Now)
+									{
+
+									}
+									else{
+										// Sleep 2 minutes
+										Thread.Sleep(2 * 60 * 60);
+									}
 								}
-								else{
-									// Sleep for the set amount of minutes to be able to check every set minutes for new due reminders. (do it last to check when bot first starts up)
-								}
-							}
 							}
 						}
 					}
@@ -230,9 +232,10 @@ namespace HoloBot
 				finally
 				{
 					con.Close();
-					Thread.Sleep(minutes * 60 * 60);	
+					// Sleep for the set amount of minutes to be able to check every set minutes for new due reminders. (do it last to check when bot first starts up)
+					Thread.Sleep(minutes * 60 * 60);
 				}
 			}
 		}
-	}
+    }
 }

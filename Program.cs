@@ -18,7 +18,8 @@ namespace HoloBot
 		private	const string	deliminator	= "!";	// To execute commands
 		private	const int	spamBuffer	= 1000;	// in ms
 		public	const int	remindTimer	= 10;	// In minutes
-
+		public	const int	remidnd	= 20;	// Testing
+	
 		public static StreamWriter writer;
 		public static StreamReader reader;
 		static void Main(string[] args)
