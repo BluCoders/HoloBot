@@ -13,7 +13,7 @@ namespace HoloBot
 		public	static string	nick	= "HoloBot";
 		private	static string	user	= "USER " + nick + " 8 * :SpyTec's C# irc bot";
 		public	const string	server	= "79.160.59.72";
-		public	static string	channel	= "#blu";
+		public	static string	channel	= "#spybot";
 		private	const int	port	= 6667;
 		private	const string	deliminator	= "!";	// To execute commands
 		private	const int	spamBuffer	= 1000;	// in ms
@@ -53,8 +53,10 @@ namespace HoloBot
 				}
 				writer.WriteLine("JOIN " + channel);
 				writer.Flush();
+				// Check if database exists and create it if not
+				Remind.CheckDatabase();
 				// Specify zero input parameters with empty parentheses. To explain see: http://msdn.microsoft.com/en-us/library/bb397687.aspx
-				Thread remindersCheck = new Thread( () => Remind.remindChecker());
+				Thread remindersCheck = new Thread( () => Remind.RemindChecker());
 				while (true)
 				{
 					while ((inputLine = reader.ReadLine()) != null)
@@ -140,8 +142,16 @@ namespace HoloBot
 							}
 							else if (inputLine.Contains(command + "remind"))
 							{
-								writer.WriteLine("PRIVMSG " + channel + " :Under production! Check back with my owner later");
-								writer.Flush();
+								Console.WriteLine("'" + Remind.GetUsername(inputLine) + "'");
+								Console.WriteLine("'" + GetUsername(inputLine) + "'");
+								Console.WriteLine("'" + Remind.GetRemindTime(inputLine) + "'");
+								Console.WriteLine("'" + Remind.GetMessage(inputLine) + "'");
+								Remind.SetReminder(
+									Remind.GetUsername(inputLine),
+									GetUsername(inputLine),
+									Remind.GetRemindTime(inputLine),
+									Remind.GetMessage(inputLine)
+								);
 								Thread.Sleep(spamBuffer);
 							}
 						}
@@ -196,6 +206,15 @@ namespace HoloBot
 		{
 			return inputLine.ToString().Substring(1, inputLine.ToString().IndexOf("!") - 1);
 		}
-
+		public static void WriteUser(string userName, string message)
+		{
+			writer.WriteLine("PRIVMSG " + userName + " :{0}", message);
+			writer.Flush();
+		}
+		public static void WriteChannel(string channel, string message)
+		{
+			writer.WriteLine("PRIVMSG " + channel + " :{0}", message);
+			writer.Flush();
+		}
 	}
 }

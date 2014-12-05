@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Data.SQLite;
 using System.Threading;
 using System.Diagnostics;
-using System.Timers;
+using System.IO;
 
 namespace HoloBot
 {
@@ -106,10 +106,16 @@ namespace HoloBot
 					// Execute command
 					command.ExecuteScalar();
 				}
+				catch(Exception ex)
+				{
+					Console.WriteLine(ex.Message);
+					Program.WriteChannel(Program.channel, "Something went wrong");
+				}
 				finally
 				{
 					// Close connection
 					con.Close();
+					Program.WriteChannel(Program.channel, "Reminder set!");
 				}
 			}
 			return true;
@@ -120,19 +126,7 @@ namespace HoloBot
 		/// <param name="command">The SQLiteCommand in which method is located in</param>
 		private static void CheckTable(SQLiteCommand command)
 		{
-			command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='@remind_table'";
-			command.Parameters.AddWithValue("@remind_table", sqlite_table);
-			var name = command.ExecuteScalar();
-
-			// If name isn't null and it equals tablename
-			if (name != null && name.ToString() == sqlite_table)
-			{
-				// Table exists: Return method
-				return;
-			}
-			// Otherwise create table
-			command.CommandText = "CREATE TABLE @remind_table (id INT, toUser VARCHAR(42), time DateTime, reminder VARCHAR(255))";
-			command.Parameters.AddWithValue("@remind_table", sqlite_table);
+			command.CommandText = "CREATE TABLE IF NOT EXISTS " + sqlite_table + " (id INT, toUser VARCHAR(42), time DateTime, reminder VARCHAR(255))";
 			command.ExecuteNonQuery();
 		}
 		/// <summary>
@@ -194,7 +188,7 @@ namespace HoloBot
 		/// Check for reminders ready to be set into countdown
 		/// </summary>
 		/// <param name="minutes">The window to check for due reminders. Recommended 10min</param>
-		public static void remindChecker(int minutes = Program.remindTimer)
+		public static void RemindChecker(int minutes = Program.remindTimer)
 		{
 			// Start a connection
 			using (SQLiteConnection con = new SQLiteConnection(String.Format("Data Source={0}.sqlite;Version={1};", sqlite_db, sqlite_version)))
@@ -218,9 +212,11 @@ namespace HoloBot
 								{
 									if (rowTime > DateTime.Now)
 									{
-
+										Program.WriteUser(list.GetString(1), list.GetString(3));
+										break;
 									}
-									else{
+									else
+									{
 										// Sleep 2 minutes
 										Thread.Sleep(2 * 60 * 60);
 									}
@@ -236,6 +232,54 @@ namespace HoloBot
 					Thread.Sleep(minutes * 60 * 60);
 				}
 			}
+		}
+		/// <summary>
+		/// Get user to remind
+		/// </summary>
+		/// <param name="inputLine">String that contains a username</param>
+		/// <returns></returns>
+		public static string GetUsername(object inputLine)
+		{
+			if(inputLine.ToString().Contains("remind in"))
+			{
+				return Program.GetUsername(inputLine);
+			}
+			else
+			{
+				string username = inputLine.ToString().Substring(inputLine.ToString().IndexOf("remind") + 7, inputLine.ToString().Length - inputLine.ToString().IndexOf("in") - 3).Trim();
+				if(username == "me")
+				{
+					return Program.GetUsername(inputLine);
+				}
+				else
+				{
+					return username;
+				}
+			}
+		}
+		/// <summary>
+		/// Get time in which to remind someone or yourself
+		/// </summary>
+		/// <param name="inputLine">String that contains a username</param>
+		/// <returns></returns>
+		public static string GetRemindTime(object inputLine)
+		{
+			return inputLine.ToString().Substring(inputLine.ToString().IndexOf("in") + 3, inputLine.ToString().Length - inputLine.ToString().IndexOf("to") - 3).Trim();
+		}
+		/// <summary>
+		/// Get reminder message 
+		/// </summary>
+		/// <param name="inputLine">String that contains a username</param>
+		/// <returns></returns>
+		public static string GetMessage(object inputLine)
+		{
+			return inputLine.ToString().Substring(inputLine.ToString().IndexOf("to") + 3).Trim();
+		}
+		public static void CheckDatabase()
+		{
+			string databaseFile = String.Format("{0}.sqlite", sqlite_db);
+			if(!File.Exists(databaseFile))
+				SQLiteConnection.CreateFile(databaseFile);
 		}
     }
 }
