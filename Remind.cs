@@ -229,7 +229,7 @@ namespace HoloBot
 				}
 				finally
 				{
-				con.Close();
+					con.Close();
 					Thread.Sleep(minutes * 60 * 60);	
 				}
 			}
