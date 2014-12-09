@@ -235,7 +235,7 @@ namespace HoloBot
 		/// Get user to remind
 		/// </summary>
 		/// <param name="inputLine">String that contains a username</param>
-		/// <returns></returns>
+		/// <returns>Username</returns>
 		public static string GetUsername(object inputLine)
 		{
 			if(inputLine.ToString().Contains("remind in"))
@@ -259,22 +259,22 @@ namespace HoloBot
 		/// Get time in which to remind someone or yourself
 		/// </summary>
 		/// <param name="inputLine">String that contains the time</param>
-		/// <returns></returns>
+		/// <returns>The time</returns>
 		public static string GetRemindTime(object inputLine)
 		{
-			return inputLine.ToString().Substring(inputLine.ToString().IndexOf(" in ") + 4, (inputLine.ToString().IndexOf(" to ") - 4) - (inputLine.ToString().IndexOf(" in "))).Trim();
+			return inputLine.ToString().Substring(inputLine.ToString().IndexOf(" in ") + 4, (inputLine.ToString().IndexOf(" to ") - 4) - inputLine.ToString().IndexOf(" in ")).Trim();
 		}
 		/// <summary>
 		/// Get reminder message 
 		/// </summary>
 		/// <param name="inputLine">String that contains a reminder message</param>
-		/// <returns></returns>
+		/// <returns>The message</returns>
 		public static string GetMessage(object inputLine)
 		{
 			return inputLine.ToString().Substring(inputLine.ToString().IndexOf(" to ") + 3).Trim();
 		}
 		/// <summary>
-		/// Check if database file exists
+		/// Check if database file exists and create if not
 		/// </summary>
 		public static void CheckDatabase()
 		{
