@@ -41,7 +41,7 @@ namespace HoloBot
 				// Check if application has warmed up. I.e. being the first time going through application command. If true it skips doing query.
 				if(!warmed_up)
 				{
-					CheckTable(command);
+					CheckTable();
 					warmed_up = true;
 				}
 
@@ -123,11 +123,12 @@ namespace HoloBot
 		/// <summary>
 		/// Check if table exists. If not, create it
 		/// </summary>
-		/// <param name="command">The SQLiteCommand in which method is located in</param>
-		private static void CheckTable(SQLiteCommand command)
+		private static void CheckTable()
 		{
-			command.CommandText = "CREATE TABLE IF NOT EXISTS " + sqlite_table + " (id INT, toUser VARCHAR(42), time DateTime, reminder VARCHAR(255))";
-			command.ExecuteNonQuery();
+			// Only for SQLite >V.3.3
+			var query = new SQLiteCommand("CREATE TABLE IF NOT EXISTS @table (id INT, toUser VARCHAR(42), time DateTime, reminder VARCHAR(255))");
+			query.Parameters.AddWithValue("@table", sqlite_table);
+			query.ExecuteNonQuery();
 		}
 		/// <summary>
 		/// Format time to yyyy-MM-dd HH:mm:ss
@@ -141,42 +142,39 @@ namespace HoloBot
 		/// <summary>
 		/// Get full reminder
 		/// </summary>
-		/// <param name="command">The SQLiteCommand in which method is located in</param>
 		/// <param name="remindId">The row ID get from</param>
 		/// <returns>SQLiteDataReader as ExecuteReader()</returns>
-		private static SQLiteDataReader GetReminder(SQLiteCommand command, int remindId)
+		private static SQLiteDataReader GetReminder(int remindId)
 		{
-			command.CommandText = "SELECT * FROM @table WHERE id='@id'";
-			command.Parameters.AddWithValue("@table", sqlite_table);
-			command.Parameters.AddWithValue("@id", remindId);
-			return command.ExecuteReader();
+			var query = new SQLiteCommand("SELECT * FROM @table WHERE id='@id'");
+			query.Parameters.AddWithValue("@table", sqlite_table);
+			query.Parameters.AddWithValue("@id", remindId);
+			return query.ExecuteReader();
 		}
 		/// <summary>
 		/// Get a query of reminders
 		/// </summary>
-		/// <param name="command">The SQLiteCommand in which method is located in</param>
 		/// <param name="minutes">Timespan to check for. In minutes</param>
 		/// <returns>SQLiteDataReader as ExecuteReader()</returns>
-		private static SQLiteDataReader ListReminders(SQLiteCommand command, int minutes)
+		private static SQLiteDataReader ListReminders(int minutes)
 		{
 			DateTime time = DateTime.Now.Subtract(TimeSpan.FromMinutes(minutes));
-			command.CommandText = "SELECT id, time FROM @table WHERE time > date(@time) ORDER BY date(time) DESC";
-			command.Parameters.AddWithValue("@table", sqlite_table);
-			command.Parameters.AddWithValue("@time", time);
-			return command.ExecuteReader();
+			var query = new SQLiteCommand("SELECT id, time FROM @table WHERE time > date(@time) ORDER BY date(time) DESC");
+			query.Parameters.AddWithValue("@table", sqlite_table);
+			query.Parameters.AddWithValue("@time", time);
+			return query.ExecuteReader();
 		}
 		/// <summary>
 		/// Remove a set reminder (recommended after reminding the person)
 		/// </summary>
-		/// <param name="command">The SQLiteCommand in which method is located in</param>
 		/// <param name="remindId">The row ID to be deleted</param>
 		/// <returns>Bool: If it has been removed or not</returns>
-		private static bool RemoveReminder(SQLiteCommand command, int remindId)
+		private static bool RemoveReminder(int remindId)
 		{
-			command.CommandText = "DELETE FROM @table WHERE id=@id";
-			command.Parameters.AddWithValue("@table", sqlite_table);
-			command.Parameters.AddWithValue("@id", remindId);
-			var results = command.ExecuteScalar();
+			var query = new SQLiteCommand("DELETE FROM @table WHERE id=@id");
+			query.Parameters.AddWithValue("@table", sqlite_table);
+			query.Parameters.AddWithValue("@id", remindId);
+			var results = query.ExecuteScalar();
 			// If succeeded to delete
 			if (results != null)
 			{
@@ -202,7 +200,7 @@ namespace HoloBot
 					{
 						// Open connection and get list of reminders as `SQLiteDataReader` type
 						con.Open();
-						var list = ListReminders(command, minutes);
+						var list = ListReminders(minutes);
 						using (list)
 						{
 							while(list.Read())
@@ -246,7 +244,7 @@ namespace HoloBot
 			}
 			else
 			{
-				string username = inputLine.ToString().Substring(inputLine.ToString().IndexOf("remind") + 7, inputLine.ToString().Length - inputLine.ToString().IndexOf("in") - 3).Trim();
+				string username = inputLine.ToString().Substring(inputLine.ToString().IndexOf("remind") + 7, inputLine.ToString().Length - inputLine.ToString().IndexOf(" in ") - 2).Trim();
 				if(username == "me")
 				{
 					return Program.GetUsername(inputLine);
@@ -264,7 +262,7 @@ namespace HoloBot
 		/// <returns></returns>
 		public static string GetRemindTime(object inputLine)
 		{
-			return inputLine.ToString().Substring(inputLine.ToString().IndexOf("in") + 3, inputLine.ToString().Length - inputLine.ToString().IndexOf("to") - 3).Trim();
+			return inputLine.ToString().Substring(inputLine.ToString().IndexOf(" in ") + 3, inputLine.ToString().Length - inputLine.ToString().IndexOf(" to ") - 5).Trim();
 		}
 		/// <summary>
 		/// Get reminder message 
@@ -273,7 +271,7 @@ namespace HoloBot
 		/// <returns></returns>
 		public static string GetMessage(object inputLine)
 		{
-			return inputLine.ToString().Substring(inputLine.ToString().IndexOf("to") + 3).Trim();
+			return inputLine.ToString().Substring(inputLine.ToString().IndexOf(" to ") + 3).Trim();
 		}
 		/// <summary>
 		/// Check if database file exists
