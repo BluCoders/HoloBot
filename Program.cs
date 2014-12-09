@@ -195,6 +195,10 @@ namespace HoloBot
 
 			Console.ReadLine();
 		}
+		/// <summary>
+		/// Send back PONG in response to a PING
+		/// </summary>
+		/// <param name="inputLine"></param>
 		public static void PongSender(object inputLine)
 		{
 			string pongString = "PONG " + inputLine.ToString().Substring(5, inputLine.ToString().Length - 5);
@@ -202,15 +206,30 @@ namespace HoloBot
 			writer.WriteLine(pongString);
 			writer.Flush();
 		}
+		/// <summary>
+		/// Get username from IRC message
+		/// </summary>
+		/// <param name="inputLine">String that contains a username</param>
+		/// <returns></returns>
 		public static string GetUsername(object inputLine)
 		{
 			return inputLine.ToString().Substring(1, inputLine.ToString().IndexOf("!") - 1);
 		}
+		/// <summary>
+		/// Write to a user
+		/// </summary>
+		/// <param name="userName">User to write to</param>
+		/// <param name="message">Message to send</param>
 		public static void WriteUser(string userName, string message)
 		{
 			writer.WriteLine("PRIVMSG " + userName + " :{0}", message);
 			writer.Flush();
 		}
+		/// <summary>
+		/// Write to channel
+		/// </summary>
+		/// <param name="channel">Channel to write to</param>
+		/// <param name="message">Message to send</param>
 		public static void WriteChannel(string channel, string message)
 		{
 			writer.WriteLine("PRIVMSG " + channel + " :{0}", message);

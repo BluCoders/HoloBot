@@ -132,7 +132,7 @@ namespace HoloBot
 		/// <summary>
 		/// Format time to yyyy-MM-dd HH:mm:ss
 		/// </summary>
-		/// <param name="timeToParse">The string of time</param>
+		/// <param name="timeToParse">String of time</param>
 		private static DateTime FormatTime(string timeToParse)
 		{
 			string format = "yyyy-MM-dd HH:mm:ss";
@@ -260,7 +260,7 @@ namespace HoloBot
 		/// <summary>
 		/// Get time in which to remind someone or yourself
 		/// </summary>
-		/// <param name="inputLine">String that contains a username</param>
+		/// <param name="inputLine">String that contains the time</param>
 		/// <returns></returns>
 		public static string GetRemindTime(object inputLine)
 		{
@@ -269,12 +269,15 @@ namespace HoloBot
 		/// <summary>
 		/// Get reminder message 
 		/// </summary>
-		/// <param name="inputLine">String that contains a username</param>
+		/// <param name="inputLine">String that contains a reminder message</param>
 		/// <returns></returns>
 		public static string GetMessage(object inputLine)
 		{
 			return inputLine.ToString().Substring(inputLine.ToString().IndexOf("to") + 3).Trim();
 		}
+		/// <summary>
+		/// Check if database file exists
+		/// </summary>
 		public static void CheckDatabase()
 		{
 			string databaseFile = String.Format("{0}.sqlite", sqlite_db);
