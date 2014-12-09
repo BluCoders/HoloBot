@@ -262,7 +262,7 @@ namespace HoloBot
 		/// <returns></returns>
 		public static string GetRemindTime(object inputLine)
 		{
-			return inputLine.ToString().Substring(inputLine.ToString().IndexOf(" in ") + 3, inputLine.ToString().Length - inputLine.ToString().IndexOf(" to ") - 5).Trim();
+			return inputLine.ToString().Substring(inputLine.ToString().IndexOf(" in ") + 4, (inputLine.ToString().IndexOf(" to ") - 4) - (inputLine.ToString().IndexOf(" in "))).Trim();
 		}
 		/// <summary>
 		/// Get reminder message 
