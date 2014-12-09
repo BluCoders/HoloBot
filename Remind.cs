@@ -37,11 +37,11 @@ namespace HoloBot
 				DateTime remindTime;
 
 				con.Open();
-
+			
 				// Check if application has warmed up. I.e. being the first time going through application command. If true it skips doing query.
 				if(!warmed_up)
 				{
-					CheckTable();
+					CheckTable(con);
 					warmed_up = true;
 				}
 
@@ -123,10 +123,10 @@ namespace HoloBot
 		/// <summary>
 		/// Check if table exists. If not, create it
 		/// </summary>
-		private static void CheckTable()
+		private static void CheckTable(SQLiteConnection con)
 		{
-			// Only for SQLite >V.3.3
-			var query = new SQLiteCommand("CREATE TABLE IF NOT EXISTS @table (id INT, toUser VARCHAR(42), time DateTime, reminder VARCHAR(255))");
+			// Command only for SQLite >V.3.3
+			var query = new SQLiteCommand("CREATE TABLE IF NOT EXISTS @table (id INT, toUser VARCHAR(42), time DateTime, reminder VARCHAR(255))", con);
 			query.Parameters.AddWithValue("@table", sqlite_table);
 			query.ExecuteNonQuery();
 		}
