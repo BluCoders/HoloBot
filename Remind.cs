@@ -34,21 +34,26 @@ namespace HoloBot
 			using (SQLiteConnection con = new SQLiteConnection(String.Format("Data Source={0}.sqlite;Version={1};", sqlite_db, sqlite_version)))
 			using (SQLiteCommand command = con.CreateCommand())
 			{
-				DateTime remindTime;
+				DateTime remindTime = DateTime.Now;
 
 				con.Open();
-			
+
 				// Check if application has warmed up. I.e. being the first time going through application command. If true it skips doing query.
 				if(!warmed_up)
 				{
-					CheckTable(con);
+					CheckTable(command);
 					warmed_up = true;
 				}
 
 				// Try to format time
+				Console.WriteLine("Formating time");
 				try
 				{
 					remindTime = FormatTime(time);
+					if(remindTime == DateTime.Now)
+					{
+						throw new FormatException();
+					}
 				}
 				catch(ArgumentNullException)
 				{
@@ -60,24 +65,29 @@ namespace HoloBot
 					Program.writer.WriteLine("PRIVMSG " + Program.channel + " :Time format invalid");
 					return false;
 				}
+				catch(Exception ex)
+				{
+					Console.WriteLine(ex.Message);
+					return false;
+				}
 
+				Console.WriteLine("Set Reminder");
 				try
 				{
 					// If reminding yourself
 					if(toUser == fromUser)
 					{
+						Console.WriteLine("Reminding yourself");
 						// If what to remind isn't null
 						if (reminder != null)
 						{
-							command.CommandText = "INSERT INTO @remind_table (toUser, time, remindText) VALUES (@toUser, @time, 'You asked me to remind you')";
-							command.Parameters.AddWithValue("@remind_table", sqlite_table);
+							command.CommandText = "INSERT INTO " + sqlite_table + " (toUser, time, remindText) VALUES (@toUser, @time, 'You asked me to remind you')";
 							command.Parameters.AddWithValue("@toUser", toUser);
 							command.Parameters.AddWithValue("@time", remindTime);
 						}
 						else
 						{
-							command.CommandText = "INSERT INTO @remind_table (toUser, time, remindText) VALUES (@toUser, @time, @reminder)";
-							command.Parameters.AddWithValue("@remind_table", sqlite_table);
+							command.CommandText = "INSERT INTO " + sqlite_table + " (toUser, time, remindText) VALUES (@toUser, @time, @reminder)";
 							command.Parameters.AddWithValue("@toUser", toUser);
 							command.Parameters.AddWithValue("@time", remindTime);
 							command.Parameters.AddWithValue("@reminder", reminder);
@@ -86,48 +96,46 @@ namespace HoloBot
 					// If someone else remind you
 					else
 					{
+						Console.WriteLine("Reminding others");
 						if (reminder != null)
 						{
-							command.CommandText = "INSERT INTO @remind_table (toUser, time, remindText) VALUES (@toUser, @time, @reminder)";
-							command.Parameters.AddWithValue("@remind_table", sqlite_table);
+							command.CommandText = "INSERT INTO " + sqlite_table + " (toUser, time, remindText) VALUES (@toUser, @time, @reminder)";
 							command.Parameters.AddWithValue("@toUser", toUser);
 							command.Parameters.AddWithValue("@time", remindTime);
 							command.Parameters.AddWithValue("@reminder", fromUser + " asked me to remind you");
 						}
 						else
 						{
-							command.CommandText = "INSERT INTO @remind_table (toUser, time, remindText) VALUES (@toUser, @time, @reminder)";
-							command.Parameters.AddWithValue("@remind_table", sqlite_table);
+							command.CommandText = "INSERT INTO " + sqlite_table + " (toUser, time, remindText) VALUES (@toUser, @time, @reminder)";
 							command.Parameters.AddWithValue("@toUser", toUser);
 							command.Parameters.AddWithValue("@time", remindTime);
 							command.Parameters.AddWithValue("@reminder", fromUser + " reminded you: " + reminder);
 						}
 					}
+					Console.WriteLine("Executing command");
 					// Execute command
 					command.ExecuteScalar();
 				}
 				catch(Exception ex)
 				{
-					Console.WriteLine(ex.Message);
+					Console.WriteLine(ex);
 					Program.WriteChannel(Program.channel, "Something went wrong");
+					return false;
 				}
-				finally
-				{
-					// Close connection
-					con.Close();
-					Program.WriteChannel(Program.channel, "Reminder set!");
-				}
+				// Close connection
+				con.Close();
+				Program.WriteChannel(Program.channel, "Reminder set!");
+				Console.WriteLine("Closed connection");
 			}
 			return true;
 		}
 		/// <summary>
 		/// Check if table exists. If not, create it
 		/// </summary>
-		private static void CheckTable(SQLiteConnection con)
+		private static void CheckTable(SQLiteCommand query)
 		{
-			// Command only for SQLite >V.3.3
-			var query = new SQLiteCommand("CREATE TABLE IF NOT EXISTS @table (id INT, toUser VARCHAR(42), time DateTime, reminder VARCHAR(255))", con);
-			query.Parameters.AddWithValue("@table", sqlite_table);
+			// Command only for SQLite >V3.3
+			query.CommandText = "CREATE TABLE IF NOT EXISTS " + sqlite_table + " (id INT, toUser VARCHAR(42), time DateTime, reminder VARCHAR(255))";
 			query.ExecuteNonQuery();
 		}
 		/// <summary>
@@ -137,17 +145,23 @@ namespace HoloBot
 		private static DateTime FormatTime(string timeToParse)
 		{
 			string format = "yyyy-MM-dd HH:mm:ss";
-			return DateTime.ParseExact(timeToParse, format, CultureInfo.InvariantCulture);
+			const DateTimeStyles style = DateTimeStyles.AllowWhiteSpaces;
+		
+			DateTime dt;
+			DateTime.TryParseExact(timeToParse, format, CultureInfo.InvariantCulture, style, out dt);
+			if(string.IsNullOrEmpty(dt.ToString()) == false)
+				return dt;
+			return DateTime.Now;
+		
 		}
 		/// <summary>
 		/// Get full reminder
 		/// </summary>
 		/// <param name="remindId">The row ID get from</param>
 		/// <returns>SQLiteDataReader as ExecuteReader()</returns>
-		private static SQLiteDataReader GetReminder(int remindId)
+		private static SQLiteDataReader GetReminder(SQLiteCommand query, int remindId)
 		{
-			var query = new SQLiteCommand("SELECT * FROM @table WHERE id='@id'");
-			query.Parameters.AddWithValue("@table", sqlite_table);
+			query.CommandText = "SELECT * FROM " + sqlite_table + " WHERE id='@id'";
 			query.Parameters.AddWithValue("@id", remindId);
 			return query.ExecuteReader();
 		}
@@ -156,11 +170,10 @@ namespace HoloBot
 		/// </summary>
 		/// <param name="minutes">Timespan to check for. In minutes</param>
 		/// <returns>SQLiteDataReader as ExecuteReader()</returns>
-		private static SQLiteDataReader ListReminders(int minutes)
+		private static SQLiteDataReader ListReminders(SQLiteCommand query, int minutes)
 		{
 			DateTime time = DateTime.Now.Subtract(TimeSpan.FromMinutes(minutes));
-			var query = new SQLiteCommand("SELECT id, time FROM @table WHERE time > date(@time) ORDER BY date(time) DESC");
-			query.Parameters.AddWithValue("@table", sqlite_table);
+			query.CommandText = "SELECT id, time FROM " + sqlite_table + " WHERE time > date(@time) ORDER BY date(time) DESC";
 			query.Parameters.AddWithValue("@time", time);
 			return query.ExecuteReader();
 		}
@@ -169,10 +182,9 @@ namespace HoloBot
 		/// </summary>
 		/// <param name="remindId">The row ID to be deleted</param>
 		/// <returns>Bool: If it has been removed or not</returns>
-		private static bool RemoveReminder(int remindId)
+		private static bool RemoveReminder(SQLiteCommand query, int remindId)
 		{
-			var query = new SQLiteCommand("DELETE FROM @table WHERE id=@id");
-			query.Parameters.AddWithValue("@table", sqlite_table);
+			query.CommandText = "DELETE FROM " + sqlite_table + " WHERE id=@id";
 			query.Parameters.AddWithValue("@id", remindId);
 			var results = query.ExecuteScalar();
 			// If succeeded to delete
@@ -200,7 +212,7 @@ namespace HoloBot
 					{
 						// Open connection and get list of reminders as `SQLiteDataReader` type
 						con.Open();
-						var list = ListReminders(minutes);
+						var list = ListReminders(command, minutes);
 						using (list)
 						{
 							while(list.Read())
@@ -262,7 +274,12 @@ namespace HoloBot
 		/// <returns>The time</returns>
 		public static string GetRemindTime(object inputLine)
 		{
-			return inputLine.ToString().Substring(inputLine.ToString().IndexOf(" in ") + 4, (inputLine.ToString().IndexOf(" to ") - 4) - inputLine.ToString().IndexOf(" in ")).Trim();
+			string input = inputLine.ToString();
+			if(input.Contains(" to "))
+			{
+				return input.Substring(input.IndexOf(" in ") + 4, (input.IndexOf(" to ") - 4 ) - input.IndexOf(" in "));
+			}
+			return input.Substring(input.IndexOf(" in ") + 4, (input.Length - (input.IndexOf(" in ") + 4) ));
 		}
 		/// <summary>
 		/// Get reminder message 
