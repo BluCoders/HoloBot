@@ -216,29 +216,20 @@ namespace HoloBot
 					{
 						// Open connection and get list of reminders as `SQLiteDataReader` type
 						con.Open();
-						Console.WriteLine("Reminder: Checking..");
 						var list = ListReminders(command, minutes);
-						Console.WriteLine(list.FieldCount.ToString());
 						if(list.HasRows == false)
 						{
 							throw new Exception("No rows");
 						}
-						else
-						{
-							Console.WriteLine("Reminder: Reminders within {0} min exists", minutes);
-						}
 						using (list)
 						{
-							Console.WriteLine(list.Depth.ToString());
 							while(list.Read())
 							{
 								DateTime rowTime = list.GetDateTime(2);
-								Console.WriteLine(rowTime.ToString());
 								while (true)
 								{
 									if (rowTime < DateTime.Now)
 									{
-										Console.WriteLine("Reminder: Reminding");
 										Program.WriteUser(list.GetString(1), list.GetString(3));
 										if(RemoveReminder(con, list.GetInt16(0)) == false)
 										{
