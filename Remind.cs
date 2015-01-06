@@ -221,8 +221,7 @@ namespace HoloBot
 						Console.WriteLine(list.FieldCount.ToString());
 						if(list.HasRows == false)
 						{
-							Console.WriteLine("0 rows!");
-							break;
+							throw new Exception("No rows");
 						}
 						else
 						{
@@ -250,19 +249,22 @@ namespace HoloBot
 									else
 									{
 										// Sleep 1 minute
-										Thread.Sleep(1 * 60 * 60);
+										Thread.Sleep(1 * 60 * 1000);
 									}
 								}
 							}
 						}
 					}
 				}
+				catch(Exception ex)
+				{
+					Console.WriteLine(ex.Message);
+				}
 				finally
 				{
-					Console.WriteLine("Reminder: Sleeping..");	
 					con.Close();
 					// Sleep for the set amount of minutes to be able to check every set minutes for new due reminders. (do it last to check when bot first starts up)
-					Thread.Sleep(minutes * 60 * 60);
+					Thread.Sleep(minutes * 60 * 1000);
 				}
 			}
 		}
