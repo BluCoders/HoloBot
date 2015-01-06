@@ -142,10 +142,6 @@ namespace HoloBot
 							}
 							else if (inputLine.Contains(command + "remind"))
 							{
-								Console.WriteLine("'" + Remind.GetUsername(inputLine) + "'");
-								Console.WriteLine("'" + GetUsername(inputLine) + "'");
-								Console.WriteLine("'" + Remind.GetRemindTime(inputLine) + "'");
-								Console.WriteLine("'" + Remind.GetMessage(inputLine) + "'");
 								Remind.SetReminder(
 									Remind.GetUsername(inputLine),
 									GetUsername(inputLine),
