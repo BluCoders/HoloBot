@@ -31,121 +31,137 @@ namespace HoloBot
 				string url = "https://" + lang + ".wikipedia.org/w/api.php?action=parse&format=xml&prop=text&redirects=true&page=" + query.ToString().Replace(" ", "+").ToString();
 				using (HttpClient client = new HttpClient())
 				{
-					using (HttpResponseMessage response = client.GetAsync(url).Result)
+					try
 					{
-						// Get the result
-						string responseBody = await response.Content.ReadAsStringAsync();
-						// Ensure request was successful
-						response.EnsureSuccessStatusCode();
-
-						// Create XmlReader
-						XmlReaderSettings settings = new XmlReaderSettings();
-						settings.ConformanceLevel = ConformanceLevel.Fragment;
-						
-						// Using XmlReader to read result
-						using (XmlReader reader = XmlReader.Create(new StringReader(responseBody), settings))
+					
+						using (HttpResponseMessage response = client.GetAsync(url).Result)
 						{
-							// For each Xml result
-							while (reader.Read())
+							// Get the result
+							string responseBody = await response.Content.ReadAsStringAsync();
+							// Ensure request was successful
+							response.EnsureSuccessStatusCode();
+
+							// Create XmlReader
+							XmlReaderSettings settings = new XmlReaderSettings();
+							settings.ConformanceLevel = ConformanceLevel.Fragment;
+						
+							// Using XmlReader to read result
+							using (XmlReader reader = XmlReader.Create(new StringReader(responseBody), settings))
 							{
-								if (reader.NodeType == XmlNodeType.Element)
+								// For each Xml result
+								while (reader.Read())
 								{
-									// To get title of article
-									if (reader.Name == "parse")
+									if (reader.NodeType == XmlNodeType.Element)
 									{
-										while (reader.MoveToNextAttribute())
+										// To get title of article
+										if (reader.Name == "parse")
 										{
-											title = reader.Value;
-										}
-									}
-									// To get reroute if it exists.
-									else if (reader.Name == "r")
-									{
-										if(reader["tofragment"] != null)
-										{
-											titleFragment = reader["tofragment"];
-										}
-									}
-									// Get article itself
-									else if (reader.Name == "text")
-									{
-										wikiText = reader.ReadInnerXml().ToString();
-										
-										// If it's not null
-										if (wikiText != null)
-										{
-											string replaceWith = " ";
-											// If there is rerouting
-											if(titleFragment != null)
+											while (reader.MoveToNextAttribute())
 											{
-												// Get rerouted article
-												wikiText = wikiText.Substring(wikiText.IndexOf("id=\"" + titleFragment + "\""), wikiText.Length - wikiText.IndexOf("id=\"" + titleFragment + "\""));
+												title = reader.Value;
 											}
-											// Clean article of html tags and newlines
-											//wikiText = HtmlRemoval.RemoveHTMLCommentsRegex(wikiText);
-											wikiText = wikiText.Substring(wikiText.IndexOf("&lt;p&gt;"), wikiText.Length - wikiText.IndexOf("&lt;p&gt;"));
-											wikiText = Regex.Replace(HtmlRemoval.StripTagsRegex(wikiText), @"^\s+$[\r\n]*", "", RegexOptions.Multiline);
-											wikiText = wikiText.Replace("\r\n", replaceWith).Replace("\n", replaceWith).Replace("\r", replaceWith);
+										}
+										// To get reroute if it exists.
+										else if (reader.Name == "r")
+										{
+											if(reader["tofragment"] != null)
+											{
+												titleFragment = reader["tofragment"];
+											}
+										}
+										// Get article itself
+										else if (reader.Name == "text")
+										{
+											wikiText = reader.ReadInnerXml().ToString();
 										
-											// Get first 50 words and try to get a sentence (Sentence may be longer then 50 words)
-											wikiText = FirstSentence(FirstWords(wikiText, 50));
+											// If it's not null
+											if (wikiText != null)
+											{
+												string replaceWith = " ";
+												// If there is rerouting
+												if(titleFragment != null)
+												{
+													// Get rerouted article
+													wikiText = wikiText.Substring(wikiText.IndexOf("id=\"" + titleFragment + "\""), wikiText.Length - wikiText.IndexOf("id=\"" + titleFragment + "\""));
+												}
+												// Clean article of html tags and newlines
+												//wikiText = HtmlRemoval.RemoveHTMLCommentsRegex(wikiText);
+												wikiText = wikiText.Substring(wikiText.IndexOf("&lt;p&gt;"), wikiText.Length - wikiText.IndexOf("&lt;p&gt;"));
+												wikiText = Regex.Replace(HtmlRemoval.StripTagsRegex(wikiText), @"^\s+$[\r\n]*", "", RegexOptions.Multiline);
+												wikiText = wikiText.Replace("\r\n", replaceWith).Replace("\n", replaceWith).Replace("\r", replaceWith);
+										
+												// Get first 50 words and try to get a sentence (Sentence may be longer then 50 words)
+												wikiText = FirstSentence(FirstWords(wikiText, 50));
+											}
 										}
 									}
 								}
-							}
 							
-							// If there is no article and language isn't japanese (to stop testing for more articles)
-							if(wikiText == null && lang != "ja")
-							{
-								// Switch languages until there is an article
-								switch(lang)
+								// If there is no article and language isn't japanese (to stop testing for more articles)
+								if(wikiText == null && lang != "ja")
 								{
-									case "en":
-										lang = "sv";
-										break;
-									case "sv":
-										lang = "no";
-										break;
-									case "no":
-										lang = "dk";
-										break;
-									case "dk":
-										lang = "de";
-										break;
-									case "de":
-										lang = "ja";
-										break;
-									default:
-										lang = "en";
-										break;
-								}
+									// Switch languages until there is an article
+									switch(lang)
+									{
+										case "en":
+											lang = "sv";
+											break;
+										case "sv":
+											lang = "no";
+											break;
+										case "no":
+											lang = "dk";
+											break;
+										case "dk":
+											lang = "de";
+											break;
+										case "de":
+											lang = "ja";
+											break;
+										default:
+											lang = "en";
+											break;
+									}
 									
-								//Continue the loop for each language
-								continue;
-							}
+									//Continue the loop for each language
+									continue;
+								}
 						
-							// Close the waiting thread so no more messages of `Still waiting...` will be written
-							waiting.Abort();
+								// Close the waiting thread so no more messages of `Still waiting...` will be written
+								waiting.Abort();
 						
-							// Set the output to each value
-							output.SetValue(title, 0);
-							output.SetValue(wikiText, 1);
-							output.SetValue(lang, 2);
+								// Set the output to each value
+								output.SetValue(title, 0);
+								output.SetValue(wikiText, 1);
+								output.SetValue(lang, 2);
 						
-							// If there was a reroute
-							if (titleFragment != null)
-							{
-								// Set 4th place in array to array fragment
-								output.SetValue("#" + titleFragment.Replace(" ", "_"), 3);
+								// If there was a reroute
+								if (titleFragment != null)
+								{
+									// Set 4th place in array to array fragment
+									output.SetValue("#" + titleFragment.Replace(" ", "_"), 3);
+								}
+								// If there wasn't a reroute
+								else
+								{
+									// Set 4th place in array to null
+									output.SetValue(null, 3);
+								}
+								return output;
 							}
-							// If there wasn't a reroute
-							else
-							{
-								// Set 4th place in array to null
-								output.SetValue(null, 3);
-							}
-							return output;
 						}
+					}
+					catch(WebException ex)
+					{
+						Program.WriteChannel(Program.channel, "We couldn't establish a connection");
+						Console.WriteLine(ex.Message);
+						return output;
+					}
+					catch(Exception ex)
+					{
+						Program.WriteChannel(Program.channel, "Something went wrong getting wikipedia article");
+						Console.WriteLine(ex.ToString());
+						return output;
 					}
 				}
 			}
