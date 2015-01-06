@@ -1,6 +1,6 @@
 HoloBot
 =======
-by [SpyTec](https://github.com/SpyTec)
+by [SpyTec](https://github.com/SpyTec) under [BluCoders](https://github.com/BluCoders)
 
 Wiki and remind IRC Bot made in C# .NET 4.5
 
@@ -15,4 +15,5 @@ And the remind command is currently under production and not working, but will b
 The help command is `!commands` and will show the available commands. Using the commands by themselves like `!wiki` will show the syntax and how to use.
 
 ##Dependencies
-[System.Data.SQLite](http://system.data.sqlite.org/index.html/doc/trunk/www/index.wiki) for .NET 4.5.0
+[System.Data.SQLite](http://system.data.sqlite.org/index.html/doc/trunk/www/index.wiki) for .NET 4.5.1 with SQLite >V3.3
+.NET 4.5.1
