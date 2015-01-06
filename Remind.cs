@@ -184,19 +184,19 @@ namespace HoloBot
 		/// <returns>Bool: If it has been removed or not</returns>
 		private static bool RemoveReminder(SQLiteConnection con, int remindId)
 		{
-			//using (SQLiteConnection con = new SQLiteConnection(String.Format("Data Source={0}.sqlite;Version={1};", sqlite_db, sqlite_version)))
 			using (SQLiteCommand query = con.CreateCommand())
 			{
 				query.CommandText = "DELETE FROM " + sqlite_table + " WHERE id=@id";
 				query.Parameters.AddWithValue("@id", remindId);
-				var results = query.ExecuteScalar();
+				var results = query.ExecuteNonQuery();
+			
 				// If succeeded to delete
-				if (results != null)
+				if (results != 0)
 				{
 					return true;
 				}
+				return false;
 			}
-			return false;
 		}
 		/// <summary>
 		/// Check for reminders ready to be set into countdown
@@ -225,7 +225,10 @@ namespace HoloBot
 						{
 							while(list.Read())
 							{
+								// Get the time from row
 								DateTime rowTime = list.GetDateTime(2);
+							
+								// Loop until reminder needs to be executed
 								while (true)
 								{
 									if (rowTime < DateTime.Now)
