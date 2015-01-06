@@ -57,12 +57,12 @@ namespace HoloBot
 				}
 				catch(ArgumentNullException)
 				{
-					Program.writer.WriteLine("PRIVMSG " + Program.channel + " :Time is empty!");
+					Program.WriteChannel(Program.channel, "Time is empty!");
 					return false;
 				}
 				catch(FormatException)
 				{
-					Program.writer.WriteLine("PRIVMSG " + Program.channel + " :Time format invalid");
+					Program.WriteChannel(Program.channel, "Time format invalid");
 					return false;
 				}
 				catch(Exception ex)
@@ -79,7 +79,7 @@ namespace HoloBot
 					{
 						Console.WriteLine("Reminding yourself");
 						// If what to remind exists
-						if (reminder != null)
+						if (reminder == null)
 						{
 							command.CommandText = "INSERT INTO " + sqlite_table + " (toUser, time, reminder) VALUES (@toUser, @time, 'You asked me to remind you')";
 							command.Parameters.AddWithValue("@toUser", toUser);
@@ -90,14 +90,14 @@ namespace HoloBot
 							command.CommandText = "INSERT INTO " + sqlite_table + " (toUser, time, reminder) VALUES (@toUser, @time, @reminder)";
 							command.Parameters.AddWithValue("@toUser", toUser);
 							command.Parameters.AddWithValue("@time", remindTime);
-							command.Parameters.AddWithValue("@reminder", reminder);
+							command.Parameters.AddWithValue("@reminder", "Reminder: " + reminder);
 						}
 					}
 					// If someone else reminds you
 					else
 					{
 						Console.WriteLine("Reminding others");
-						if (reminder != null)
+						if (reminder == null)
 						{
 							command.CommandText = "INSERT INTO " + sqlite_table + " (toUser, time, reminder) VALUES (@toUser, @time, @reminder)";
 							command.Parameters.AddWithValue("@toUser", toUser);
@@ -145,9 +145,10 @@ namespace HoloBot
 		private static DateTime FormatTime(string timeToParse)
 		{
 			string format = "yyyy-MM-dd HH:mm:ss";
-			const DateTimeStyles style = DateTimeStyles.AllowWhiteSpaces;
-			DateTime dt;
-			DateTime.TryParseExact(timeToParse, format, CultureInfo.InvariantCulture, style, out dt);
+			//const DateTimeStyles style = DateTimeStyles.AllowWhiteSpaces;
+			DateTime dt = DateTime.UtcNow;
+			dt = DateTime.ParseExact(timeToParse, format, CultureInfo.InvariantCulture);
+			//DateTime.TryParseExact(timeToParse, format, CultureInfo.InvariantCulture, style, out dt);
 		
 			if(string.IsNullOrEmpty(dt.ToString()) == false)
 				return dt;
@@ -192,9 +193,7 @@ namespace HoloBot
 			
 				// If succeeded to delete
 				if (results != 0)
-				{
 					return true;
-				}
 				return false;
 			}
 		}
@@ -242,8 +241,8 @@ namespace HoloBot
 									}
 									else
 									{
-										// Sleep 1 minute
-										Thread.Sleep(1 * 60 * 1000);
+										// Sleep half a minute
+										Thread.Sleep((int)((1 * 60 * 1000)/2));
 									}
 								}
 							}
@@ -307,7 +306,12 @@ namespace HoloBot
 		/// <returns>The message</returns>
 		public static string GetMessage(object inputLine)
 		{
-			return inputLine.ToString().Substring(inputLine.ToString().IndexOf(" to ") + 3).Trim();
+			string input = inputLine.ToString();
+			if(input.Contains(" to "))
+			{
+				return input.Substring(input.IndexOf(" to ") + 4, (input.Length - (input.IndexOf(" to ") + 4)));
+			}
+			return null;
 		}
 		/// <summary>
 		/// Check if database file exists and create if not
