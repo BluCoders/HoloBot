@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("IrcBot")]
+[assembly: AssemblyProduct("HoloBot")]
 [assembly: AssemblyCopyright("Copyright © SpyTec 2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
