@@ -16,4 +16,5 @@ The help command is `!commands` and will show the available commands. Using the 
 
 ##Dependencies
 [System.Data.SQLite](http://system.data.sqlite.org/index.html/doc/trunk/www/index.wiki) for .NET 4.5.1 with SQLite >V3.3
+
 .NET 4.5.1
