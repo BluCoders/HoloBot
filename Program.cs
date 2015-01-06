@@ -57,6 +57,7 @@ namespace HoloBot
 				Remind.CheckDatabase();
 				// Specify zero input parameters with empty parentheses. To explain see: http://msdn.microsoft.com/en-us/library/bb397687.aspx
 				Thread remindersCheck = new Thread( () => Remind.RemindChecker());
+				remindersCheck.Start();
 				while (true)
 				{
 					while ((inputLine = reader.ReadLine()) != null)

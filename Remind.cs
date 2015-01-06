@@ -78,35 +78,35 @@ namespace HoloBot
 					if(toUser == fromUser)
 					{
 						Console.WriteLine("Reminding yourself");
-						// If what to remind isn't null
+						// If what to remind exists
 						if (reminder != null)
 						{
-							command.CommandText = "INSERT INTO " + sqlite_table + " (toUser, time, remindText) VALUES (@toUser, @time, 'You asked me to remind you')";
+							command.CommandText = "INSERT INTO " + sqlite_table + " (toUser, time, reminder) VALUES (@toUser, @time, 'You asked me to remind you')";
 							command.Parameters.AddWithValue("@toUser", toUser);
 							command.Parameters.AddWithValue("@time", remindTime);
 						}
 						else
 						{
-							command.CommandText = "INSERT INTO " + sqlite_table + " (toUser, time, remindText) VALUES (@toUser, @time, @reminder)";
+							command.CommandText = "INSERT INTO " + sqlite_table + " (toUser, time, reminder) VALUES (@toUser, @time, @reminder)";
 							command.Parameters.AddWithValue("@toUser", toUser);
 							command.Parameters.AddWithValue("@time", remindTime);
 							command.Parameters.AddWithValue("@reminder", reminder);
 						}
 					}
-					// If someone else remind you
+					// If someone else reminds you
 					else
 					{
 						Console.WriteLine("Reminding others");
 						if (reminder != null)
 						{
-							command.CommandText = "INSERT INTO " + sqlite_table + " (toUser, time, remindText) VALUES (@toUser, @time, @reminder)";
+							command.CommandText = "INSERT INTO " + sqlite_table + " (toUser, time, reminder) VALUES (@toUser, @time, @reminder)";
 							command.Parameters.AddWithValue("@toUser", toUser);
 							command.Parameters.AddWithValue("@time", remindTime);
 							command.Parameters.AddWithValue("@reminder", fromUser + " asked me to remind you");
 						}
 						else
 						{
-							command.CommandText = "INSERT INTO " + sqlite_table + " (toUser, time, remindText) VALUES (@toUser, @time, @reminder)";
+							command.CommandText = "INSERT INTO " + sqlite_table + " (toUser, time, reminder) VALUES (@toUser, @time, @reminder)";
 							command.Parameters.AddWithValue("@toUser", toUser);
 							command.Parameters.AddWithValue("@time", remindTime);
 							command.Parameters.AddWithValue("@reminder", fromUser + " reminded you: " + reminder);
@@ -135,7 +135,7 @@ namespace HoloBot
 		private static void CheckTable(SQLiteCommand query)
 		{
 			// Command only for SQLite >V3.3
-			query.CommandText = "CREATE TABLE IF NOT EXISTS " + sqlite_table + " (id INT, toUser VARCHAR(42), time DateTime, reminder VARCHAR(255))";
+			query.CommandText = "CREATE TABLE IF NOT EXISTS " + sqlite_table + " (`id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, toUser VARCHAR(42) NOT NULL, time DateTime NOT NULL, reminder VARCHAR(255))";
 			query.ExecuteNonQuery();
 		}
 		/// <summary>
@@ -146,9 +146,9 @@ namespace HoloBot
 		{
 			string format = "yyyy-MM-dd HH:mm:ss";
 			const DateTimeStyles style = DateTimeStyles.AllowWhiteSpaces;
-		
 			DateTime dt;
 			DateTime.TryParseExact(timeToParse, format, CultureInfo.InvariantCulture, style, out dt);
+		
 			if(string.IsNullOrEmpty(dt.ToString()) == false)
 				return dt;
 			return DateTime.Now;
@@ -173,7 +173,7 @@ namespace HoloBot
 		private static SQLiteDataReader ListReminders(SQLiteCommand query, int minutes)
 		{
 			DateTime time = DateTime.Now.Subtract(TimeSpan.FromMinutes(minutes));
-			query.CommandText = "SELECT id, time FROM " + sqlite_table + " WHERE time > date(@time) ORDER BY date(time) DESC";
+			query.CommandText = "SELECT * FROM " + sqlite_table + " WHERE time > date(@time) ORDER BY date(time) DESC";
 			query.Parameters.AddWithValue("@time", time);
 			return query.ExecuteReader();
 		}
@@ -182,15 +182,19 @@ namespace HoloBot
 		/// </summary>
 		/// <param name="remindId">The row ID to be deleted</param>
 		/// <returns>Bool: If it has been removed or not</returns>
-		private static bool RemoveReminder(SQLiteCommand query, int remindId)
+		private static bool RemoveReminder(SQLiteConnection con, int remindId)
 		{
-			query.CommandText = "DELETE FROM " + sqlite_table + " WHERE id=@id";
-			query.Parameters.AddWithValue("@id", remindId);
-			var results = query.ExecuteScalar();
-			// If succeeded to delete
-			if (results != null)
+			//using (SQLiteConnection con = new SQLiteConnection(String.Format("Data Source={0}.sqlite;Version={1};", sqlite_db, sqlite_version)))
+			using (SQLiteCommand query = con.CreateCommand())
 			{
-				return true;
+				query.CommandText = "DELETE FROM " + sqlite_table + " WHERE id=@id";
+				query.Parameters.AddWithValue("@id", remindId);
+				var results = query.ExecuteScalar();
+				// If succeeded to delete
+				if (results != null)
+				{
+					return true;
+				}
 			}
 			return false;
 		}
@@ -212,23 +216,41 @@ namespace HoloBot
 					{
 						// Open connection and get list of reminders as `SQLiteDataReader` type
 						con.Open();
+						Console.WriteLine("Reminder: Checking..");
 						var list = ListReminders(command, minutes);
+						Console.WriteLine(list.FieldCount.ToString());
+						if(list.HasRows == false)
+						{
+							Console.WriteLine("0 rows!");
+							break;
+						}
+						else
+						{
+							Console.WriteLine("Reminder: Reminders within {0} min exists", minutes);
+						}
 						using (list)
 						{
+							Console.WriteLine(list.Depth.ToString());
 							while(list.Read())
 							{
 								DateTime rowTime = list.GetDateTime(2);
+								Console.WriteLine(rowTime.ToString());
 								while (true)
 								{
-									if (rowTime > DateTime.Now)
+									if (rowTime < DateTime.Now)
 									{
+										Console.WriteLine("Reminder: Reminding");
 										Program.WriteUser(list.GetString(1), list.GetString(3));
+										if(RemoveReminder(con, list.GetInt16(0)) == false)
+										{
+											Program.WriteUser(list.GetString(1), "Couldn't delete reminder, contact admin as you'll get repeated messages! D:");
+										}
 										break;
 									}
 									else
 									{
-										// Sleep 2 minutes
-										Thread.Sleep(2 * 60 * 60);
+										// Sleep 1 minute
+										Thread.Sleep(1 * 60 * 60);
 									}
 								}
 							}
@@ -237,6 +259,7 @@ namespace HoloBot
 				}
 				finally
 				{
+					Console.WriteLine("Reminder: Sleeping..");	
 					con.Close();
 					// Sleep for the set amount of minutes to be able to check every set minutes for new due reminders. (do it last to check when bot first starts up)
 					Thread.Sleep(minutes * 60 * 60);
