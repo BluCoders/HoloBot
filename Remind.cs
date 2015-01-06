@@ -217,7 +217,7 @@ namespace HoloBot
 						// Open connection and get list of reminders as `SQLiteDataReader` type
 						con.Open();
 						var list = ListReminders(command, minutes);
-						if(list.HasRows == false)
+						if(!list.HasRows)
 						{
 							throw new Exception("No rows");
 						}
