@@ -146,12 +146,12 @@ namespace HoloBot
 		{
 			string format = "yyyy-MM-dd HH:mm:ss";
 			//const DateTimeStyles style = DateTimeStyles.AllowWhiteSpaces;
-			DateTime dt;
-			dt = DateTime.ParseExact(timeToParse, format, CultureInfo.InvariantCulture);
+			DateTime dt = DateTime.ParseExact(timeToParse, format, CultureInfo.InvariantCulture).ToUniversalTime();
 			//DateTime.TryParseExact(timeToParse, format, CultureInfo.InvariantCulture, style, out dt);
 		
-			if(string.IsNullOrEmpty(dt.ToString()) == false)
+			if(string.IsNullOrEmpty(dt.ToString()) == false && dt > DateTime.UtcNow)
 				return dt;
+			// FormatException if time is empty
 			throw new FormatException();
 		
 		}
