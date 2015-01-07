@@ -63,7 +63,7 @@ namespace HoloBot
 				}
 				catch(Exception ex)
 				{
-					Console.WriteLine(ex.Message);
+					Program.WriteChannel(Program.channel, ex.Message);
 					return false;
 				}
 
@@ -143,10 +143,12 @@ namespace HoloBot
 		{
 			string format = "yyyy-MM-dd HH:mm:ss";
 			//const DateTimeStyles style = DateTimeStyles.AllowWhiteSpaces;
-			DateTime dt = DateTime.ParseExact(timeToParse, format, CultureInfo.InvariantCulture).ToUniversalTime();
+			DateTime dt = DateTime.ParseExact(timeToParse, format, null).ToUniversalTime();
 			//DateTime.TryParseExact(timeToParse, format, CultureInfo.InvariantCulture, style, out dt);
 		
-			if(string.IsNullOrEmpty(dt.ToString()) == false && dt > DateTime.UtcNow)
+			if (dt < DateTime.UtcNow)
+				throw new Exception("Trying to remind yourself in the past! Go by UTC");
+			else if (string.IsNullOrEmpty(dt.ToString()) == false)
 				return dt;
 			// FormatException if time is empty
 			throw new FormatException();
@@ -170,7 +172,7 @@ namespace HoloBot
 		/// <returns>SQLiteDataReader as ExecuteReader()</returns>
 		private static SQLiteDataReader ListReminders(SQLiteCommand query, int minutes)
 		{
-			DateTime time = DateTime.Now.Subtract(TimeSpan.FromMinutes(minutes));
+			DateTime time = DateTime.Now.Subtract(TimeSpan.FromMinutes(minutes)).ToUniversalTime();
 			query.CommandText = "SELECT * FROM " + sqlite_table + " WHERE time > date(@time) ORDER BY date(time) DESC";
 			query.Parameters.AddWithValue("@time", time);
 			return query.ExecuteReader();
