@@ -191,8 +191,8 @@ namespace HoloBot
 				query.Parameters.AddWithValue("@id", remindId);
 				var results = query.ExecuteNonQuery();
 			
-				// If succeeded to delete
-				if (results != 0)
+				// If succeeded to delete, i.e. more than one row affected
+				if (results > 0)
 					return true;
 				return false;
 			}
@@ -235,7 +235,7 @@ namespace HoloBot
 										Program.WriteUser(list.GetString(1), list.GetString(3));
 										if(RemoveReminder(con, list.GetInt16(0)) == false)
 										{
-											Program.WriteUser(list.GetString(1), "Couldn't delete reminder, contact admin as you'll get repeated messages! D:");
+											Program.WriteUser(list.GetString(1), "Couldn't delete reminder, contact admin as you'll get repeated messages!");
 										}
 										break;
 									}
