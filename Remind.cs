@@ -115,7 +115,7 @@ namespace HoloBot
 				catch(Exception ex)
 				{
 					Console.WriteLine(ex);
-					Program.WriteChannel(Program.channel, "Something went wrong");
+					Program.WriteChannel(Program.channel, ex.Message);
 					return false;
 				}
 				// Close connection
@@ -143,9 +143,11 @@ namespace HoloBot
 		{
 			string format = "yyyy-MM-dd HH:mm:ss";
 			//const DateTimeStyles style = DateTimeStyles.AllowWhiteSpaces;
-			DateTime dt = DateTime.ParseExact(timeToParse, format, null).ToUniversalTime();
+			DateTime dt = DateTime.ParseExact(timeToParse, format, null);
+			Console.WriteLine(dt.ToString());
+			Console.WriteLine(DateTime.UtcNow);
 			//DateTime.TryParseExact(timeToParse, format, CultureInfo.InvariantCulture, style, out dt);
-		
+			
 			if (dt < DateTime.UtcNow)
 				throw new Exception("Trying to remind yourself in the past! Go by UTC");
 			else if (string.IsNullOrEmpty(dt.ToString()) == false)
@@ -240,17 +242,16 @@ namespace HoloBot
 									}
 									else
 									{
-										// Sleep half a minute
-										Thread.Sleep((int)((1 * 60 * 1000)/2));
+										// Sleep 15s
+										Thread.Sleep(15 * 1000);
 									}
 								}
 							}
 						}
 					}
 				}
-				catch(Exception ex)
+				catch(Exception)
 				{
-					Console.WriteLine(ex.Message);
 				}
 				finally
 				{
@@ -273,7 +274,7 @@ namespace HoloBot
 			}
 			else
 			{
-				string username = inputLine.ToString().Substring(inputLine.ToString().IndexOf("remind") + 7, inputLine.ToString().Length - inputLine.ToString().IndexOf(" in ") - 2).Trim();
+				string username = inputLine.ToString().Substring(inputLine.ToString().IndexOf("remind") + 7, inputLine.ToString().IndexOf(" in ") - (inputLine.ToString().IndexOf("remind") + 7));
 				if(username == "me")
 				{
 					return Program.GetUsername(inputLine);
