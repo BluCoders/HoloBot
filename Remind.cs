@@ -34,7 +34,7 @@ namespace HoloBot
 			using (SQLiteConnection con = new SQLiteConnection(String.Format("Data Source={0}.sqlite;Version={1};", sqlite_db, sqlite_version)))
 			using (SQLiteCommand command = con.CreateCommand())
 			{
-				DateTime remindTime = DateTime.Now;
+				DateTime remindTime = DateTime.UtcNow;
 
 				con.Open();
 
@@ -172,7 +172,7 @@ namespace HoloBot
 		/// <returns>SQLiteDataReader as ExecuteReader()</returns>
 		private static SQLiteDataReader ListReminders(SQLiteCommand query, int minutes)
 		{
-			DateTime time = DateTime.Now.Subtract(TimeSpan.FromMinutes(minutes)).ToUniversalTime();
+			DateTime time = DateTime.UtcNow.Subtract(TimeSpan.FromMinutes(minutes)).ToUniversalTime();
 			query.CommandText = "SELECT * FROM " + sqlite_table + " WHERE time > date(@time) ORDER BY date(time) DESC";
 			query.Parameters.AddWithValue("@time", time);
 			return query.ExecuteReader();
@@ -229,7 +229,7 @@ namespace HoloBot
 								// Loop until reminder needs to be executed
 								while (true)
 								{
-									if (rowTime < DateTime.Now)
+									if (rowTime < DateTime.UtcNow)
 									{
 										Program.WriteUser(list.GetString(1), list.GetString(3));
 										if(RemoveReminder(con, list.GetInt16(0)) == false)
