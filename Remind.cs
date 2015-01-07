@@ -50,10 +50,6 @@ namespace HoloBot
 				try
 				{
 					remindTime = FormatTime(time);
-					if(remindTime == DateTime.Now)
-					{
-						throw new FormatException();
-					}
 				}
 				catch(ArgumentNullException)
 				{
@@ -142,6 +138,7 @@ namespace HoloBot
 		/// Format time to yyyy-MM-dd HH:mm:ss
 		/// </summary>
 		/// <param name="timeToParse">String of time</param>
+		/// <returns>timeToParse formatted into a DateTime type</returns>
 		private static DateTime FormatTime(string timeToParse)
 		{
 			string format = "yyyy-MM-dd HH:mm:ss";
