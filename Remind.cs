@@ -135,7 +135,7 @@ namespace HoloBot
 		private static void CheckTable(SQLiteCommand query)
 		{
 			// Command only for SQLite >V3.3
-			query.CommandText = "CREATE TABLE IF NOT EXISTS " + sqlite_table + " (`id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, toUser VARCHAR(42) NOT NULL, time DateTime NOT NULL, reminder VARCHAR(255))";
+			query.CommandText = "CREATE TABLE IF NOT EXISTS " + sqlite_table + " (`id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, `toUser` VARCHAR(42) NOT NULL, `time` DateTime NOT NULL, `reminder` VARCHAR(255))";
 			query.ExecuteNonQuery();
 		}
 		/// <summary>
