@@ -6,7 +6,7 @@ Wiki and remind IRC Bot made in C# .NET 4.5
 
 Made as a learning experience towards .NET
 
-The wiki command is a way to get the first sentence from a wikipedia article, it does not search but grab an article by that name. It currently searches through English, Swedish, Norwegian, Dutch, Danish and Japanese wikipedia in that order.
+The wiki command is a way to get the first sentence from a wikipedia article, it does not search but grab an article by that name. It currently searches through English, Swedish, Norwegian, Danish, German and Japanese wikipedia in that order.
 
 And the remind command is currently under production and not working, but will be a way for people to remind themselves or other people to do certain things. Either by reminding at a specific time or when they're online in the IRC (will be checked if they've typed anything in channel)
 
