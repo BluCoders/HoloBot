@@ -111,7 +111,7 @@ namespace HoloBot
             while ((inputLine = reader.ReadLine()) != null)
             {
                 Console.WriteLine(inputLine);
-                if (inputLine.Contains((command = "PRIVMSG " + channel + " :" + deliminator)))
+                if (inputLine.StartsWith((command = "PRIVMSG " + channel + " :" + deliminator)))
                 {
                     if (inputLine.EndsWith(command + "commands"))
                     {
